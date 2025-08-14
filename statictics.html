@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+  <title>PopsCoin — аналитика игроков</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0c10;
+      --panel: #11141a;
+      --panel-2: #0d1117;
+      --text: #e6e8eb;
+      --muted: #9aa4b2;
+      --accent: #7c3aed; /* violet */
+      --accent-2: #22d3ee; /* cyan */
+      --good: #10b981;
+      --bad: #ef4444;
+      --warn: #f59e0b;
+      --card-r: 18px;
+      --shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.03);
+      --glass: rgba(255,255,255,.04);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin:0; background: var(--bg); color: var(--text); font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; }
+    a { color: var(--accent-2); text-decoration: none; }
+    header { padding: 24px 16px 8px; position: sticky; top: 0; background: linear-gradient(180deg, rgba(10,12,16,.95), rgba(10,12,16,.65) 60%, transparent); backdrop-filter: blur(8px); z-index: 5; }
+    .title { display:flex; align-items:center; gap:14px; }
+    .logo { width:36px; height:36px; background: radial-gradient(120% 120% at 30% 30%, var(--accent), var(--accent-2)); border-radius:10px; box-shadow: var(--shadow); }
+    h1 { font-family: Orbitron, Inter, sans-serif; letter-spacing: .5px; font-size: clamp(22px, 2.6vw, 32px); margin:0; }
+    .sub { color: var(--muted); font-size: 12px; }
+    .wrap { padding: 8px 16px 40px; max-width: 1300px; margin: 0 auto; }
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
+    .card { background: linear-gradient(180deg, var(--panel), var(--panel-2)); border: 1px solid rgba(255,255,255,.06); border-radius: var(--card-r); box-shadow: var(--shadow); padding: 14px; }
+    .kpis { grid-column: 1 / -1; display:grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
+    .kpi { grid-column: span 6; display:flex; flex-direction:column; gap:6px; padding:14px; background: linear-gradient(180deg, rgba(124,58,237,.12), rgba(34,211,238,.09)); border: 1px solid rgba(124,58,237,.25); border-radius: 16px; }
+    .kpi b { font-size: clamp(18px, 3vw, 28px); font-variant-numeric: tabular-nums; }
+    .kpi span { color: var(--muted); font-size: 12px; }
+    .charts { grid-column: 1 / -1; display:grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
+    .charts .card { grid-column: span 12; }
+    @media(min-width: 780px) {
+        .kpi { grid-column: span 3; }
+        .charts .card.big { grid-column: span 8; }
+        .charts .card.side { grid-column: span 4; }
+        .charts .card.half { grid-column: span 6; }
+    }
+    canvas { width: 100% !important; height: auto !important; }
+    .leaders { grid-column: 1 / -1; display:grid; grid-template-columns: repeat(12, 1fr); gap: 14px; }
+    .leader { grid-column: span 12; }
+    @media(min-width: 900px) { .leader { grid-column: span 4; } }
+    .leader h3 { margin: 2px 0 8px; font-size: 14px; color: var(--muted); }
+    .leader ol { margin:0; padding:0 0 0 18px; display:flex; flex-direction:column; gap:6px; }
+    .leader li { padding: 8px 10px; background: var(--glass); border-radius: 12px; border: 1px solid rgba(255,255,255,.06); }
+    .table { grid-column: 1 / -1; overflow:auto; }
+    table { width:100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 10px 8px; text-align: left; border-bottom:1px solid rgba(255,255,255,.06); }
+    th { position: sticky; top: 64px; background: var(--panel); z-index: 3; cursor: pointer; user-select: none; }
+    tr:hover td { background: rgba(124,58,237,.05); }
+    .badge { padding: 4px 8px; border-radius: 999px; font-size: 11px; border: 1px solid rgba(255,255,255,.14); }
+    .good { color: var(--good); }
+    .bad { color: var(--bad); }
+    .warn { color: var(--warn); }
+    .footer { margin-top: 28px; color: var(--muted); font-size: 12px; }
+    .row { display:flex; gap: 10px; align-items:center; flex-wrap: wrap; }
+    .pill { display:inline-flex; gap:8px; align-items:center; padding:8px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.06); background: var(--panel-2); font-size:12px; }
+    .search { flex:1; min-width: 180px; }
+    .search input { width:100%; padding:10px 12px; border-radius: 12px; background: var(--panel); color:var(--text); border:1px solid rgba(255,255,255,.08); outline:none; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">
+      <div class="logo"></div>
+      <div>
+        <h1>PopsCoin — сводка по игрокам</h1>
+        <div class="sub">Автоматический отчёт · обновлено: 14.08.2025 20:00</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <section class="grid kpis">
+      <div class="kpi"><span>Игроков</span><b id="kpi_players"></b></div>
+      <div class="kpi"><span>Заработано PCS</span><b id="kpi_earn_pcs"></b></div>
+      <div class="kpi"><span>Потрачено PCS</span><b id="kpi_spent_pcs"></b></div>
+      <div class="kpi"><span>Чистый PCS</span><b id="kpi_net_pcs"></b></div>
+      <div class="kpi"><span>Заработано Popsium</span><b id="kpi_earn_psm"></b></div>
+      <div class="kpi"><span>Потрачено Popsium</span><b id="kpi_spent_psm"></b></div>
+      <div class="kpi"><span>Побеждено врагов</span><b id="kpi_kills"></b></div>
+      <div class="kpi"><span>Смерти</span><b id="kpi_deaths"></b></div>
+    </section>
+
+    <section class="charts grid">
+      <div class="card big">
+        <h2 style="margin:4px 0 10px">Net PCS по игрокам</h2>
+        <canvas id="netChart"></canvas>
+      </div>
+      <div class="card side">
+        <h2 style="margin:4px 0 10px">Popsium — вклад игроков</h2>
+        <canvas id="popsiumPie"></canvas>
+      </div>
+      <div class="card half">
+        <h2 style="margin:4px 0 10px">PCS: заработано vs потрачено</h2>
+        <canvas id="stackedPCS"></canvas>
+      </div>
+      <div class="card half">
+        <h2 style="margin:4px 0 10px">Связь: заработано PCS и победы</h2>
+        <canvas id="scatterEarnKills"></canvas>
+      </div>
+      <div class="card">
+        <h2 style="margin:4px 0 10px">Индекс активности</h2>
+        <canvas id="activityChart"></canvas>
+      </div>
+    </section>
+
+    <section class="leaders grid">
+      <div class="leader card">
+        <h3>Лидеры — Чистый PCS</h3>
+        <ol id="lead_net"></ol>
+      </div>
+      <div class="leader card">
+        <h3>Лидеры — Заработано PCS</h3>
+        <ol id="lead_earn"></ol>
+      </div>
+      <div class="leader card">
+        <h3>Лидеры — Popsium</h3>
+        <ol id="lead_psm"></ol>
+      </div>
+      <div class="leader card">
+        <h3>Лидеры — Побеждено врагов</h3>
+        <ol id="lead_kills"></ol>
+      </div>
+      <div class="leader card">
+        <h3>Лидеры — Добыча руды</h3>
+        <ol id="lead_ores"></ol>
+      </div>
+      <div class="leader card">
+        <h3>Лидеры — Покупки</h3>
+        <ol id="lead_buy"></ol>
+      </div>
+      <div class="leader card">
+        <h3>Лидеры — Выпито в таверне</h3>
+        <ol id="lead_drink"></ol>
+      </div>
+      <div class="leader card">
+        <h3>Лидеры — Заточки</h3>
+        <ol id="lead_ench"></ol>
+      </div>
+      <div class="leader card">
+        <h3>Лидеры — K/D</h3>
+        <ol id="lead_kd"></ol>
+      </div>
+      <div class="leader card">
+        <h3>Лидеры — Индекс активности</h3>
+        <ol id="lead_act"></ol>
+      </div>
+      <div class="leader card">
+        <h3>Лидеры — Поломки (больше)</h3>
+        <ol id="lead_break"></ol>
+      </div>
+    </section>
+
+    <section class="table card">
+      <div class="row" style="margin-bottom:8px">
+        <div class="pill">Сортировка: нажми на заголовок</div>
+        <div class="search"><input id="search" placeholder="Поиск по игроку…"/></div>
+        <button id="export" class="pill" title="Экспорт таблицы в CSV">Экспорт CSV</button>
+      </div>
+      <div style="overflow:auto;">
+      <table id="statTable">
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      </div>
+      <div class="footer">* K/D = Побеждено врагов / Смерти (если смертей 0 — показываем ∞).</div>
+    </section>
+
+    <div class="footer">Отчёт сгенерирован локально · © PopsCoin Analytics</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script>
+    const CHART = "{\"players\":[\"Grey\",\"Mizukaze\",\"Toshiro\",\"Лекс🐾\",\"Soranami\",\"Elvina\",\"Джонсонюк\",\"Camalik\",\"MaryKat\",\"Эмин\",\"Скайлер\",\"Мидведь\",\"Didier\"],\"earned_popscoin\":[2197,534,1105,1790,1579,2102,1080,994,505,568,932,1719,699],\"spent_popscoin\":[3954,1469,1527,3640,3039,3499,1671,1450,763,1230,1482,2409,1357],\"net_popscoin\":[-1757,-935,-422,-1850,-1460,-1397,-591,-456,-258,-662,-550,-690,-658],\"earned_popsium\":[16,0,0,20,32,13,0,0,0,0,0,0,0],\"spent_popsium\":[14,0,2,17,16,9,0,0,0,0,0,0,0],\"ores_broken\":[186,48,90,164,152,183,83,76,37,38,73,162,68],\"purchases_made\":[29,7,9,28,26,27,10,10,5,6,10,18,8],\"drinks_in_tavern\":[160,46,122,166,154,167,87,94,26,16,58,142,62],\"promocodes_used\":[10,1,4,12,5,7,3,3,1,1,4,8,4],\"enchants_used\":[12,4,5,11,7,10,3,4,2,3,4,9,3],\"items_broken\":[7,2,3,7,6,8,2,3,1,0,2,5,2],\"enemies_defeated\":[64,21,47,75,68,71,31,35,15,14,23,52,25],\"deaths\":[4,2,3,7,3,6,2,3,1,0,2,4,2],\"kd_ratio\":[\"16.0\",\"10.5\",\"15.67\",\"10.71\",\"22.67\",\"11.83\",\"15.5\",\"11.67\",\"15.0\",\"∞\",\"11.5\",\"13.0\",\"12.5\"],\"activity_score\":[100.0,18.7,62.6,97.1,92.4,97.3,34.5,39.4,11.4,8.2,28.3,83.0,31.3]}";
+    const TOTALS = "{\"players\":13,\"earned_popscoin\":14400,\"spent_popscoin\":25591,\"net_popscoin\":-11191,\"earned_popsium\":81,\"spent_popsium\":58,\"enemies_defeated\":548,\"deaths\":36,\"ores_broken\":1362,\"purchases_made\":208,\"drinks_in_tavern\":1300,\"enchants_used\":77,\"promocodes_used\":59,\"items_broken\":48}";
+    const LEADERS = "{\"net_popscoin\":[[\"Grey\",-1757],[\"Лекс🐾\",-1850],[\"Elvina\",-1397],[\"Soranami\",-1460],[\"Мидведь\",-690]],\"earned_popscoin\":[[\"Grey\",2197],[\"Elvina\",2102],[\"Лекс🐾\",1790],[\"Мидведь\",1719],[\"Soranami\",1579]],\"earned_popsium\":[[\"Soranami\",32],[\"Лекс🐾\",20],[\"Grey\",16],[\"Elvina\",13],[\"Toshiro\",0]],\"enemies_defeated\":[[\"Лекс🐾\",75],[\"Elvina\",71],[\"Soranami\",68],[\"Grey\",64],[\"Мидведь\",52]],\"ores_broken\":[[\"Grey\",186],[\"Elvina\",183],[\"Лекс🐾\",164],[\"Мидведь\",162],[\"Soranami\",152]],\"purchases_made\":[[\"Grey\",29],[\"Лекс🐾\",28],[\"Elvina\",27],[\"Soranami\",26],[\"Мидведь\",18]],\"drinks_in_tavern\":[[\"Elvina\",167],[\"Лекс🐾\",166],[\"Grey\",160],[\"Soranami\",154],[\"Мидведь\",142]],\"enchants_used\":[[\"Grey\",12],[\"Лекс🐾\",11],[\"Elvina\",10],[\"Мидведь\",9],[\"Soranami\",7]],\"items_broken\":[[\"Elvina\",8],[\"Grey\",7],[\"Лекс🐾\",7],[\"Soranami\",6],[\"Мидведь\",5]],\"kd_ratio\":[[\"Grey\",\"16.0\"],[\"Soranami\",\"22.67\"],[\"Toshiro\",\"15.67\"],[\"Джонсонюк\",\"15.5\"],[\"MaryKat\",\"15.0\"]],\"activity_score\":[[\"Grey\",100.0],[\"Elvina\",97.3],[\"Лекс🐾\",97.1],[\"Soranami\",92.4],[\"Мидведь\",83.0]]}";
+    const TABLE = "[{\"Игрок\":\"Grey\",\"Заработано PCS\":2197,\"Потрачено PCS\":3954,\"Чистый PCS\":-1757,\"Заработано PSM\":16,\"Потрачено PSM\":14,\"Добыча руды\":186,\"Покупки\":29,\"Выпито в таверне\":160,\"Промокоды\":10,\"Заточки\":12,\"Поломки\":7,\"Побеждено врагов\":64,\"Смерти\":4,\"K/D\":\"16.0\",\"Индекс активности\":100.0},{\"Игрок\":\"Mizukaze\",\"Заработано PCS\":534,\"Потрачено PCS\":1469,\"Чистый PCS\":-935,\"Заработано PSM\":0,\"Потрачено PSM\":0,\"Добыча руды\":48,\"Покупки\":7,\"Выпито в таверне\":46,\"Промокоды\":1,\"Заточки\":4,\"Поломки\":2,\"Побеждено врагов\":21,\"Смерти\":2,\"K/D\":\"10.5\",\"Индекс активности\":18.7},{\"Игрок\":\"Toshiro\",\"Заработано PCS\":1105,\"Потрачено PCS\":1527,\"Чистый PCS\":-422,\"Заработано PSM\":0,\"Потрачено PSM\":2,\"Добыча руды\":90,\"Покупки\":9,\"Выпито в таверне\":122,\"Промокоды\":4,\"Заточки\":5,\"Поломки\":3,\"Побеждено врагов\":47,\"Смерти\":3,\"K/D\":\"15.67\",\"Индекс активности\":62.6},{\"Игрок\":\"Лекс🐾\",\"Заработано PCS\":1790,\"Потрачено PCS\":3640,\"Чистый PCS\":-1850,\"Заработано PSM\":20,\"Потрачено PSM\":17,\"Добыча руды\":164,\"Покупки\":28,\"Выпито в таверне\":166,\"Промокоды\":12,\"Заточки\":11,\"Поломки\":7,\"Побеждено врагов\":75,\"Смерти\":7,\"K/D\":\"10.71\",\"Индекс активности\":97.1},{\"Игрок\":\"Soranami\",\"Заработано PCS\":1579,\"Потрачено PCS\":3039,\"Чистый PCS\":-1460,\"Заработано PSM\":32,\"Потрачено PSM\":16,\"Добыча руды\":152,\"Покупки\":26,\"Выпито в таверне\":154,\"Промокоды\":5,\"Заточки\":7,\"Поломки\":6,\"Побеждено врагов\":68,\"Смерти\":3,\"K/D\":\"22.67\",\"Индекс активности\":92.4},{\"Игрок\":\"Elvina\",\"Заработано PCS\":2102,\"Потрачено PCS\":3499,\"Чистый PCS\":-1397,\"Заработано PSM\":13,\"Потрачено PSM\":9,\"Добыча руды\":183,\"Покупки\":27,\"Выпито в таверне\":167,\"Промокоды\":7,\"Заточки\":10,\"Поломки\":8,\"Побеждено врагов\":71,\"Смерти\":6,\"K/D\":\"11.83\",\"Индекс активности\":97.3},{\"Игрок\":\"Джонсонюк\",\"Заработано PCS\":1080,\"Потрачено PCS\":1671,\"Чистый PCS\":-591,\"Заработано PSM\":0,\"Потрачено PSM\":0,\"Добыча руды\":83,\"Покупки\":10,\"Выпито в таверне\":87,\"Промокоды\":3,\"Заточки\":3,\"Поломки\":2,\"Побеждено врагов\":31,\"Смерти\":2,\"K/D\":\"15.5\",\"Индекс активности\":34.5},{\"Игрок\":\"Camalik\",\"Заработано PCS\":994,\"Потрачено PCS\":1450,\"Чистый PCS\":-456,\"Заработано PSM\":0,\"Потрачено PSM\":0,\"Добыча руды\":76,\"Покупки\":10,\"Выпито в таверне\":94,\"Промокоды\":3,\"Заточки\":4,\"Поломки\":3,\"Побеждено врагов\":35,\"Смерти\":3,\"K/D\":\"11.67\",\"Индекс активности\":39.4},{\"Игрок\":\"MaryKat\",\"Заработано PCS\":505,\"Потрачено PCS\":763,\"Чистый PCS\":-258,\"Заработано PSM\":0,\"Потрачено PSM\":0,\"Добыча руды\":37,\"Покупки\":5,\"Выпито в таверне\":26,\"Промокоды\":1,\"Заточки\":2,\"Поломки\":1,\"Побеждено врагов\":15,\"Смерти\":1,\"K/D\":\"15.0\",\"Индекс активности\":11.4},{\"Игрок\":\"Эмин\",\"Заработано PCS\":568,\"Потрачено PCS\":1230,\"Чистый PCS\":-662,\"Заработано PSM\":0,\"Потрачено PSM\":0,\"Добыча руды\":38,\"Покупки\":6,\"Выпито в таверне\":16,\"Промокоды\":1,\"Заточки\":3,\"Поломки\":0,\"Побеждено врагов\":14,\"Смерти\":0,\"K/D\":\"∞\",\"Индекс активности\":8.2},{\"Игрок\":\"Скайлер\",\"Заработано PCS\":932,\"Потрачено PCS\":1482,\"Чистый PCS\":-550,\"Заработано PSM\":0,\"Потрачено PSM\":0,\"Добыча руды\":73,\"Покупки\":10,\"Выпито в таверне\":58,\"Промокоды\":4,\"Заточки\":4,\"Поломки\":2,\"Побеждено врагов\":23,\"Смерти\":2,\"K/D\":\"11.5\",\"Индекс активности\":28.3},{\"Игрок\":\"Мидведь\",\"Заработано PCS\":1719,\"Потрачено PCS\":2409,\"Чистый PCS\":-690,\"Заработано PSM\":0,\"Потрачено PSM\":0,\"Добыча руды\":162,\"Покупки\":18,\"Выпито в таверне\":142,\"Промокоды\":8,\"Заточки\":9,\"Поломки\":5,\"Побеждено врагов\":52,\"Смерти\":4,\"K/D\":\"13.0\",\"Индекс активности\":83.0},{\"Игрок\":\"Didier\",\"Заработано PCS\":699,\"Потрачено PCS\":1357,\"Чистый PCS\":-658,\"Заработано PSM\":0,\"Потрачено PSM\":0,\"Добыча руды\":68,\"Покупки\":8,\"Выпито в таверне\":62,\"Промокоды\":4,\"Заточки\":3,\"Поломки\":2,\"Побеждено врагов\":25,\"Смерти\":2,\"K/D\":\"12.5\",\"Индекс активности\":31.3}]";
+
+    const chart = JSON.parse(CHART);
+    const totals = JSON.parse(TOTALS);
+    const leaders = JSON.parse(LEADERS);
+    const rows = JSON.parse(TABLE);
+
+    // KPIs
+    const fmt = (n) => n.toLocaleString('ru-RU');
+    document.getElementById('kpi_players').textContent = fmt(totals.players);
+    document.getElementById('kpi_earn_pcs').textContent = fmt(totals.earned_popscoin);
+    document.getElementById('kpi_spent_pcs').textContent = fmt(totals.spent_popscoin);
+    document.getElementById('kpi_net_pcs').textContent = fmt(totals.net_popscoin);
+    document.getElementById('kpi_earn_psm').textContent = fmt(totals.earned_popsium);
+    document.getElementById('kpi_spent_psm').textContent = fmt(totals.spent_popsium);
+    document.getElementById('kpi_kills').textContent = fmt(totals.enemies_defeated);
+    document.getElementById('kpi_deaths').textContent = fmt(totals.deaths);
+
+    // Leaderboards helper
+    function fillList(id, data, suffix = '') {
+      const el = document.getElementById(id);
+      el.innerHTML = data.map(([name, val], i) => `<li><b>#${i+1}</b> ${name} <span class="badge">${val}${suffix}</span></li>`).join('');
+    }
+    fillList('lead_net', leaders.net_popscoin);
+    fillList('lead_earn', leaders.earned_popscoin);
+    fillList('lead_psm', leaders.earned_popsium);
+    fillList('lead_kills', leaders.enemies_defeated);
+    fillList('lead_ores', leaders.ores_broken);
+    fillList('lead_buy', leaders.purchases_made);
+    fillList('lead_drink', leaders.drinks_in_tavern);
+    fillList('lead_ench', leaders.enchants_used);
+    fillList('lead_break', leaders.items_broken);
+    fillList('lead_kd', leaders.kd_ratio);
+    fillList('lead_act', leaders.activity_score);
+
+    // Charts
+    const ctxNet = document.getElementById('netChart');
+    const netChart = new Chart(ctxNet, {
+        type: 'bar',
+        data: {
+          labels: chart.players,
+          datasets: [{ label: 'Чистый PCS', data: chart.net_popscoin }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: (ctx) => ` ${ctx.raw.toLocaleString('ru-RU')} PCS` } }
+          },
+          scales: {
+            x: { grid: { color: 'rgba(255,255,255,.06)' } },
+            y: { grid: { color: 'rgba(255,255,255,.06)' }, ticks: { callback: (v)=> v.toLocaleString('ru-RU') } }
+          }
+        }
+    });
+
+    const ctxPie = document.getElementById('popsiumPie');
+    const pie = new Chart(ctxPie, {
+      type: 'doughnut',
+      data: {
+        labels: chart.players,
+        datasets: [{ label: 'Popsium', data: chart.earned_popsium }]
+      },
+      options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+
+    const ctxStack = document.getElementById('stackedPCS');
+    const stacked = new Chart(ctxStack, {
+      type: 'bar',
+      data: {
+        labels: chart.players,
+        datasets: [
+          { label: 'Заработано', data: chart.earned_popscoin, stack: 'pcs' },
+          { label: 'Потрачено', data: chart.spent_popscoin, stack: 'pcs' }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'bottom' } },
+        scales: { x: { stacked: true }, y: { stacked: true } }
+      }
+    });
+
+    const ctxScatter = document.getElementById('scatterEarnKills');
+    const scatterData = chart.players.map((p, i) => ({ x: chart.earned_popscoin[i], y: chart.enemies_defeated[i], r: Math.max(4, chart.activity_score[i]/12), label: p }));
+    const scatter = new Chart(ctxScatter, {
+      type: 'scatter',
+      data: { datasets: [{ label: 'Игрок', data: scatterData }] },
+      options: {
+        responsive: true,
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ` ${ctx.raw.label} — PCS: ${ctx.raw.x.toLocaleString('ru-RU')}, Победы: ${ctx.raw.y.toLocaleString('ru-RU')}`
+            }
+          }
+        },
+        scales: {
+          x: { title: { display:true, text:'Заработано PCS' } },
+          y: { title: { display:true, text:'Побеждено врагов' } }
+        }
+      }
+    });
+
+    const ctxActivity = document.getElementById('activityChart');
+    const activity = new Chart(ctxActivity, {
+      type: 'line',
+      data: {
+        labels: chart.players,
+        datasets: [{ label: 'Индекс активности', data: chart.activity_score, tension: .3 }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+
+    // Table
+    const thead = document.getElementById('thead');
+    const tbody = document.getElementById('tbody');
+    const cols = Object.keys(rows[0]);
+    thead.innerHTML = '<tr>' + cols.map(c => `<th data-col="${c}">${c}</th>`).join('') + '</tr>';
+    function draw(data) {
+      tbody.innerHTML = data.map(r => '<tr>' + cols.map(c => `<td>${r[c]}</td>`).join('') + '</tr>').join('');
+    }
+    let current = rows.slice();
+    draw(current);
+
+    // Sort on header click
+    thead.addEventListener('click', (e) => {
+      const th = e.target.closest('th'); if(!th) return;
+      const key = th.dataset.col;
+      const isNumber = !isNaN(parseFloat(rows[0][key].toString().replace('∞','')));
+      const dir = th.dataset.dir === 'asc' ? 'desc' : 'asc';
+      [...thead.querySelectorAll('th')].forEach(x => x.removeAttribute('data-dir'));
+      th.setAttribute('data-dir', dir);
+      current.sort((a,b)=> {
+        let av = a[key], bv = b[key];
+        if (key==='K/D') { av = av==='∞' ? 1e9 : parseFloat(av); bv = b[key]==='∞' ? 1e9 : parseFloat(bv); }
+        if (isNumber) { av = parseFloat(av); bv = parseFloat(bv); }
+        if (av < bv) return dir==='asc' ? -1 : 1;
+        if (av > bv) return dir==='asc' ? 1 : -1;
+        return 0;
+      });
+      draw(current);
+    });
+
+    // Search
+    const search = document.getElementById('search');
+    search.addEventListener('input', () => {
+      const q = search.value.toLowerCase().trim();
+      current = rows.filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(q)));
+      draw(current);
+    });
+
+    // Export CSV
+    document.getElementById('export').addEventListener('click', () => {
+      const separator = ';';
+      const header = cols.join(separator);
+      const body = current.map(r => cols.map(c => String(r[c]).replaceAll('"','""')).join(separator)).join('\n');
+      const blob = new Blob([header+'\n'+body], {type:'text/csv;charset=utf-8;'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'popscoin_stats.csv';
+      a.click();
+    });
+  </script>
+</body>
+</html>
