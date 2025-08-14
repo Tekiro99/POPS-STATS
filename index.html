@@ -65,6 +65,15 @@
     .pill { display:inline-flex; gap:8px; align-items:center; padding:8px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.06); background: var(--panel-2); font-size:12px; }
     .search { flex:1; min-width: 180px; }
     .search input { width:100%; padding:10px 12px; border-radius: 12px; background: var(--panel); color:var(--text); border:1px solid rgba(255,255,255,.08); outline:none; }
+
+    /* mobile-optimized stacked chart & promo modal */
+    #stackedPCS { min-height: 320px; }
+    @media (max-width: 780px) { #stackedPCS { min-height: 500px; } }
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index: 50; }
+    .modal .box { background: var(--panel); border: 1px solid rgba(255,255,255,.1); border-radius: 16px; padding: 18px; max-width: 420px; width: calc(100% - 32px); text-align: center; box-shadow: var(--shadow); }
+    .modal .box h3 { margin: 0 0 8px; }
+    .code { font-family: Orbitron, monospace; font-size: 20px; letter-spacing: 2px; padding: 10px 14px; border-radius: 12px; background: var(--panel-2); border:1px solid rgba(255,255,255,.12); display:inline-block; }
+    .modal .actions { display:flex; gap:10px; justify-content:center; margin-top:12px; }
   </style>
 </head>
 <body>
@@ -79,6 +88,14 @@
   </header>
 
   <div class="wrap">
+    <!-- Баннер недели релиза -->
+    <section class="card" id="releaseNote">
+      <div class="row">
+        <span class="pill">Неделя с релиза</span>
+        <div>POPSCOIN REBORN был запущен <b>6 августа 2025</b>. Это сводка по случаю первой недели.</div>
+      </div>
+    </section>
+
     <section class="grid kpis">
       <div class="kpi"><span>Игроков</span><b id="kpi_players"></b></div>
       <div class="kpi"><span>Заработано PCS</span><b id="kpi_earn_pcs"></b></div>
@@ -91,22 +108,16 @@
     </section>
 
     <section class="charts grid">
-      <div class="card big">
-        <h2 style="margin:4px 0 10px">Net PCS по игрокам</h2>
-        <canvas id="netChart"></canvas>
-      </div>
+      <!-- Убрали Net PCS -->
       <div class="card side">
         <h2 style="margin:4px 0 10px">Popsium — вклад игроков</h2>
         <canvas id="popsiumPie"></canvas>
       </div>
-      <div class="card half">
+      <div class="card big">
         <h2 style="margin:4px 0 10px">PCS: заработано vs потрачено</h2>
         <canvas id="stackedPCS"></canvas>
       </div>
-      <div class="card half">
-        <h2 style="margin:4px 0 10px">Связь: заработано PCS и победы</h2>
-        <canvas id="scatterEarnKills"></canvas>
-      </div>
+      <!-- Убрали «Связь: заработано PCS и победы» -->
       <div class="card">
         <h2 style="margin:4px 0 10px">Индекс активности</h2>
         <canvas id="activityChart"></canvas>
@@ -175,7 +186,27 @@
       <div class="footer">* K/D = Побеждено врагов / Смерти (если смертей 0 — показываем ∞).</div>
     </section>
 
+    <!-- Кнопка промокода -->
+    <section class="card" id="promo">
+      <div class="row" style="justify-content:space-between;">
+        <div>Промо к неделе релиза</div>
+        <button id="promoBtn" class="pill" title="Показать промокод">Показать промокод</button>
+      </div>
+    </section>
+
     <div class="footer">Отчёт сгенерирован локально · © PopsCoin Analytics</div>
+  </div>
+
+  <!-- Модалка промокода -->
+  <div id="promoModal" class="modal" role="dialog" aria-modal="true" aria-label="Промокод недели релиза">
+    <div class="box">
+      <h3>Промокод недели релиза</h3>
+      <div class="code">1POPSWEEK</div>
+      <div class="actions">
+        <button id="copyPromo" class="pill">Скопировать</button>
+        <button id="closePromo" class="pill">Закрыть</button>
+      </div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
@@ -218,82 +249,52 @@
     fillList('lead_kd', leaders.kd_ratio);
     fillList('lead_act', leaders.activity_score);
 
-    // Charts
-    const ctxNet = document.getElementById('netChart');
-    const netChart = new Chart(ctxNet, {
-        type: 'bar',
-        data: {
-          labels: chart.players,
-          datasets: [{ label: 'Чистый PCS', data: chart.net_popscoin }]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: { display: false },
-            tooltip: { callbacks: { label: (ctx) => ` ${ctx.raw.toLocaleString('ru-RU')} PCS` } }
-          },
-          scales: {
-            x: { grid: { color: 'rgba(255,255,255,.06)' } },
-            y: { grid: { color: 'rgba(255,255,255,.06)' }, ticks: { callback: (v)=> v.toLocaleString('ru-RU') } }
-          }
-        }
-    });
-
+    // Charts (оставили только Pie, Stacked, Activity)
     const ctxPie = document.getElementById('popsiumPie');
     const pie = new Chart(ctxPie, {
       type: 'doughnut',
-      data: {
-        labels: chart.players,
-        datasets: [{ label: 'Popsium', data: chart.earned_popsium }]
-      },
+      data: { labels: chart.players, datasets: [{ label: 'Popsium', data: chart.earned_popsium }] },
       options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
     });
 
+    // Мобильная оптимизация: горизонтальные бары на телефонах
     const ctxStack = document.getElementById('stackedPCS');
-    const stacked = new Chart(ctxStack, {
+    const isMobile = window.matchMedia('(max-width: 780px)').matches;
+    const stackConfig = {
       type: 'bar',
       data: {
         labels: chart.players,
         datasets: [
-          { label: 'Заработано', data: chart.earned_popscoin, stack: 'pcs' },
-          { label: 'Потрачено', data: chart.spent_popscoin, stack: 'pcs' }
+          { label: 'Заработано', data: chart.earned_popscoin, stack: 'pcs', maxBarThickness: 28, categoryPercentage: 0.7, barPercentage: 0.9 },
+          { label: 'Потрачено', data: chart.spent_popscoin, stack: 'pcs', maxBarThickness: 28, categoryPercentage: 0.7, barPercentage: 0.9 }
         ]
       },
       options: {
         responsive: true,
-        plugins: { legend: { position: 'bottom' } },
-        scales: { x: { stacked: true }, y: { stacked: true } }
-      }
-    });
-
-    const ctxScatter = document.getElementById('scatterEarnKills');
-    const scatterData = chart.players.map((p, i) => ({ x: chart.earned_popscoin[i], y: chart.enemies_defeated[i], r: Math.max(4, chart.activity_score[i]/12), label: p }));
-    const scatter = new Chart(ctxScatter, {
-      type: 'scatter',
-      data: { datasets: [{ label: 'Игрок', data: scatterData }] },
-      options: {
-        responsive: true,
-        plugins: {
-          tooltip: {
-            callbacks: {
-              label: (ctx) => ` ${ctx.raw.label} — PCS: ${ctx.raw.x.toLocaleString('ru-RU')}, Победы: ${ctx.raw.y.toLocaleString('ru-RU')}`
-            }
-          }
-        },
+        maintainAspectRatio: false,
+        indexAxis: isMobile ? 'y' : 'x',
+        plugins: { legend: { position: isMobile ? 'top' : 'bottom' } },
         scales: {
-          x: { title: { display:true, text:'Заработано PCS' } },
-          y: { title: { display:true, text:'Побеждено врагов' } }
+          x: { stacked: true, grid: { color: 'rgba(255,255,255,.06)' } },
+          y: { stacked: true, grid: { color: 'rgba(255,255,255,.06)' } }
         }
+      }
+    };
+    const stacked = new Chart(ctxStack, stackConfig);
+    window.addEventListener('resize', () => {
+      const nowMobile = window.matchMedia('(max-width: 780px)').matches;
+      const axis = nowMobile ? 'y' : 'x';
+      if (stacked.options.indexAxis !== axis) {
+        stacked.options.indexAxis = axis;
+        stacked.options.plugins.legend.position = nowMobile ? 'top' : 'bottom';
+        stacked.update();
       }
     });
 
     const ctxActivity = document.getElementById('activityChart');
     const activity = new Chart(ctxActivity, {
       type: 'line',
-      data: {
-        labels: chart.players,
-        datasets: [{ label: 'Индекс активности', data: chart.activity_score, tension: .3 }]
-      },
+      data: { labels: chart.players, datasets: [{ label: 'Индекс активности', data: chart.activity_score, tension: .3 }] },
       options: { responsive: true, plugins: { legend: { display: false } } }
     });
 
@@ -346,6 +347,20 @@
       a.download = 'popscoin_stats.csv';
       a.click();
     });
+
+    // Promo modal
+    const promoBtn = document.getElementById('promoBtn');
+    const promoModal = document.getElementById('promoModal');
+    const closePromo = document.getElementById('closePromo');
+    const copyPromo = document.getElementById('copyPromo');
+    if (promoBtn && promoModal) {
+      promoBtn.addEventListener('click', () => { promoModal.style.display = 'flex'; });
+      closePromo.addEventListener('click', () => { promoModal.style.display = 'none'; });
+      promoModal.addEventListener('click', (e) => { if (e.target === promoModal) promoModal.style.display = 'none'; });
+      copyPromo.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText('1POPSWEEK'); copyPromo.textContent = 'Скопировано!'; setTimeout(()=> copyPromo.textContent='Скопировать', 1500); } catch(e) {}
+      });
+    }
   </script>
 </body>
 </html>
