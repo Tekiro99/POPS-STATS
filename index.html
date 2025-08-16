@@ -2,83 +2,92 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>PopsCoin — калькулятор заточки</title>
 <style>
   :root{
     --bg:#0b0f14; --panel:#121821; --muted:#8aa0b2; --text:#e7f0f7;
-    --acc:#5ad2ff; --acc2:#8fff7a; --err:#ff6b6b; --ring:rgba(90,210,255,.35);
+    --acc:#5ad2ff; --acc2:#8fff7a; --err:#ff6b6b;
     --br:14px; --pad:14px; --gap:12px;
   }
-  *{box-sizing:border-box}
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  *:focus{outline: none}
+  html,body{height:100%}
   body{
     margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;
-    background:radial-gradient(1200px 600px at 70% -10%,#0f2233 0%,transparent 60%), var(--bg);
+    background:radial-gradient(1100px 520px at 70% -10%,#0f2233 0%,transparent 60%), var(--bg);
     color:var(--text); line-height:1.35;
   }
-  .wrap{max-width:980px;margin:24px auto;padding:18px}
-  .card{background:linear-gradient(180deg,#0f1620 0%, var(--panel) 100%); border:1px solid #1d2733; border-radius:var(--br); box-shadow:0 10px 30px rgba(0,0,0,.35)}
-  header{padding:22px var(--pad) 16px; border-bottom:1px solid #1d2733; display:flex; justify-content:space-between; align-items:center; gap:10px}
-  h1{margin:0;font-size:20px;letter-spacing:.3px}
-  .badge{font-size:12px;color:#0b1b24;background:linear-gradient(135deg,var(--acc),#7be6ff);padding:6px 10px;border-radius:999px;font-weight:700}
-  .content{padding:18px}
+  .wrap{max-width:880px;margin:20px auto;padding:14px}
+  .card{background:linear-gradient(180deg,#0f1620 0%, var(--panel) 100%); border:1px solid #1c2633; border-radius:var(--br); box-shadow:0 10px 26px rgba(0,0,0,.35)}
+  header{padding:16px var(--pad); border-bottom:1px solid #1c2633; display:flex; justify-content:space-between; align-items:center; gap:10px}
+  h1{margin:0;font-size:18px;letter-spacing:.2px}
+  .content{padding:14px var(--pad) 12px}
   .grid{display:grid; grid-template-columns:1fr; gap:var(--gap)}
-  @media (min-width:760px){ .grid{grid-template-columns:1.1fr 1fr}}
   .seg{
     display:inline-grid; grid-auto-flow:column; gap:8px; background:#0f1620; padding:6px; border-radius:999px; border:1px solid #1c2633
   }
   .seg input{display:none}
   .seg label{
-    padding:8px 14px; border-radius:999px; cursor:pointer; font-weight:600; color:var(--muted);
-    transition:.15s transform ease, .15s background ease, .15s color ease;
-    user-select:none; white-space:nowrap
+    padding:8px 12px; border-radius:999px; cursor:pointer; font-weight:600; color:var(--muted);
+    transition:background .12s ease, transform .06s ease; user-select:none; white-space:nowrap
   }
   .seg input:checked + label{
-    background:linear-gradient(135deg,#123347 0%, #0f2433 100%);
-    box-shadow:0 0 0 3px var(--ring) inset, 0 2px 12px rgba(90,210,255,.25);
-    color:var(--text); transform:translateY(-1px)
+    background:#132030; color:var(--text); transform:translateY(-1px)
   }
+  .seg label .tag{
+    margin-left:6px; font-size:10px; font-weight:800; color:#b9d8ff;
+    background:#122235; border:1px solid #20364c; border-radius:8px; padding:2px 6px;
+    position:relative; top:-1px;
+  }
+
   .field{display:flex; flex-direction:column; gap:6px}
   .field label{font-size:13px;color:var(--muted)}
   .field input{
-    width:100%; padding:12px 12px; border-radius:12px; border:1px solid #233142; outline:none;
-    background:#0b1118; color:var(--text); font-size:15px;
+    width:100%; padding:10px 12px; border-radius:12px; border:1px solid #233142; background:#0b1118; color:var(--text); font-size:15px;
   }
-  .field input:focus{border-color:#2e475e; box-shadow:0 0 0 4px var(--ring)}
-  .row{display:grid; grid-template-columns:1fr 1fr; gap:var(--gap)}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:var(--gap)}
   .row3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:var(--gap)}
-  .actions{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
+
+  .actions{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:10px}
   button{
     appearance:none; border:0; padding:12px 16px; border-radius:12px; font-weight:700; cursor:pointer;
     background:linear-gradient(135deg,var(--acc) 0%, #7be6ff 100%); color:#033346;
-    box-shadow:0 8px 20px rgba(90,210,255,.35); transition:transform .08s ease, filter .2s ease
+    box-shadow:0 8px 18px rgba(90,210,255,.30); transition:transform .08s ease, filter .2s ease
   }
   button:active{transform:translateY(1px)}
   .ghost{background:#182231; color:#c6d3de; box-shadow:none}
-  .note{font-size:12px;color:var(--muted)}
-  .err{color:var(--err); font-size:13px}
-  /* Results */
-  .results-wrap{overflow:hidden; max-height:0; transition:max-height .5s ease}
-  .results{padding:6px var(--pad) 18px}
-  .table{
-    width:100%; border-collapse:separate; border-spacing:0; overflow:auto; display:block;
-    border:1px solid #1d2733; border-radius:12px; background:#0c1119;
-  }
-  table{width:100%; min-width:560px}
-  thead th{
-    position:sticky; top:0; background:#101827; z-index:1; font-size:12px; color:#a9bdcd; text-transform:uppercase; letter-spacing:.08em
-  }
-  th, td{padding:10px 12px; border-bottom:1px solid #172231; text-align:right}
+
+  .err{color:var(--err); font-size:13px; margin-top:8px; display:none}
+
+  /* Results (сжатая таблица без горизонтального скролла) */
+  .results-wrap{overflow:hidden; max-height:0; transition:max-height .45s ease}
+  .results{padding:6px var(--pad) 14px}
+  .table{border:1px solid #1c2633; border-radius:12px; background:#0c1119}
+  table{width:100%; table-layout:fixed; border-collapse:separate; border-spacing:0}
+  col.lvl{width:18%}
+  col.min{width:27%}
+  col.max{width:27%}
+  col.avg{width:28%}
+  th, td{padding:8px 8px; border-bottom:1px solid #172231; text-align:right; font-variant-numeric: tabular-nums}
   th:first-child, td:first-child{text-align:left}
+  thead th{font-size:12px; color:#a9bdcd; text-transform:uppercase; letter-spacing:.06em; background:#101827}
   tbody tr:nth-child(odd){background:rgba(255,255,255,.02)}
   .lvl{font-weight:700}
-  .pill{
-    display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; font-weight:700;
-    background:linear-gradient(135deg,#1c3244,#122234); color:#cfe8f7; border:1px solid #25445e
+
+  /* Мобильные улучшения — компактность и шрифты */
+  @media (max-width: 560px){
+    .wrap{padding:10px}
+    header{padding:12px}
+    h1{font-size:16px}
+    .content{padding:12px}
+    .row2,.row3{gap:10px}
+    .field input{padding:10px 10px; font-size:14px}
+    th, td{padding:7px 6px; font-size:13px}
+    col.lvl{width:20%} col.min{width:26%} col.max{width:26%} col.avg{width:28%}
+    .seg label{padding:8px 10px; font-size:13px}
+    button{padding:11px 14px; font-size:14px}
   }
-  .fade-in{animation:fade .35s ease}
-  @keyframes fade{from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:none}}
-  footer{padding:14px var(--pad) 22px; color:#7f96a8; font-size:12px; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -86,45 +95,37 @@
     <div class="card">
       <header>
         <h1>PopsCoin — калькулятор заточки</h1>
-        <span class="badge">v1.1</span>
       </header>
 
       <div class="content">
         <div class="grid">
           <div class="field">
-            <label>Тип предмета</label>
+            <label>Тип</label>
             <div class="seg" role="tablist" aria-label="Тип предмета">
-              <input type="radio" name="type" id="t1" value="tool" checked>
-              <label for="t1">Инструмент</label>
-              <input type="radio" name="type" id="t2" value="weapon">
-              <label for="t2">Оружие</label>
+              <input type="radio" name="type" id="t1" value="uni" checked>
+              <label for="t1">Инструмент/Оружие</label>
+
               <input type="radio" name="type" id="t3" value="armor">
-              <label for="t3">Броня</label>
+              <label for="t3">Броня <span class="tag">Тест</span></label>
             </div>
           </div>
 
           <div id="inputs"></div>
         </div>
 
-        <div class="actions" style="margin-top:12px">
+        <div class="actions">
           <button id="calcBtn">Калькуляция</button>
           <button class="ghost" id="resetBtn" type="button">Сброс</button>
-          <span class="note">+1 … +20 уровни будут показаны ниже.</span>
         </div>
 
-        <div id="msg" class="err" style="margin-top:10px; display:none"></div>
+        <div id="msg" class="err"></div>
       </div>
 
       <div class="results-wrap" id="resultsWrap">
         <div class="results">
-          <div class="table fade-in" id="tableHolder" hidden></div>
+          <div class="table" id="tableHolder" hidden></div>
         </div>
       </div>
-
-      <footer>
-        <div>Поддерживает мобильные: жест горизонтального скролла по таблице.</div>
-        <div>Алгоритм соответствует текущей логике PopsCoin.</div>
-      </footer>
     </div>
   </div>
 
@@ -139,53 +140,37 @@
 
   const $ = (sel, root=document) => root.querySelector(sel);
 
+  // Виды форм
   const views = {
-    tool(){
+    uni(){
       const frag = document.createElement('div');
+      frag.className = 'row2';
       frag.innerHTML = `
-        <div class="row">
-          <div class="field">
-            <label>Мин. эффективность добычи</label>
-            <input inputmode="numeric" pattern="\\d*" id="min" placeholder="например, 10">
-          </div>
-          <div class="field">
-            <label>Макс. эффективность добычи</label>
-            <input inputmode="numeric" pattern="\\d*" id="max" placeholder="например, 20">
-          </div>
-        </div>`;
-      return frag;
-    },
-    weapon(){
-      const frag = document.createElement('div');
-      frag.innerHTML = `
-        <div class="row">
-          <div class="field">
-            <label>Мин. урон</label>
-            <input inputmode="numeric" pattern="\\d*" id="min" placeholder="например, 10">
-          </div>
-          <div class="field">
-            <label>Макс. урон</label>
-            <input inputmode="numeric" pattern="\\d*" id="max" placeholder="например, 20">
-          </div>
+        <div class="field">
+          <label>Минимальное значение</label>
+          <input inputmode="numeric" pattern="\\d*" id="min" placeholder="например, 10">
+        </div>
+        <div class="field">
+          <label>Максимальное значение</label>
+          <input inputmode="numeric" pattern="\\d*" id="max" placeholder="например, 20">
         </div>`;
       return frag;
     },
     armor(){
       const frag = document.createElement('div');
+      frag.className = 'row3';
       frag.innerHTML = `
-        <div class="row3">
-          <div class="field">
-            <label>HP (база)</label>
-            <input inputmode="numeric" pattern="\\d*" id="hp" placeholder="например, 100">
-          </div>
-          <div class="field">
-            <label>MP (база)</label>
-            <input inputmode="numeric" pattern="\\d*" id="mp" placeholder="например, 50">
-          </div>
-          <div class="field">
-            <label>KB (база)</label>
-            <input inputmode="numeric" pattern="\\d*" id="kb" placeholder="например, 5">
-          </div>
+        <div class="field">
+          <label>HP (база)</label>
+          <input inputmode="numeric" pattern="\\d*" id="hp" placeholder="например, 100">
+        </div>
+        <div class="field">
+          <label>MP (база)</label>
+          <input inputmode="numeric" pattern="\\d*" id="mp" placeholder="например, 50">
+        </div>
+        <div class="field">
+          <label>KB (база)</label>
+          <input inputmode="numeric" pattern="\\d*" id="kb" placeholder="например, 5">
         </div>`;
       return frag;
     }
@@ -196,9 +181,8 @@
     inputsHost.appendChild(views[kind]());
   }
 
-  // initial
-  setView('tool');
-
+  // init
+  setView('uni');
   document.querySelectorAll('input[name="type"]').forEach(r => {
     r.addEventListener('change', e => setView(e.target.value));
   });
@@ -209,83 +193,84 @@
     return parseInt(v, 10);
   }
 
-  function grow20Round(prev){
-    // рост на 20% от предыдущего уровня с ОКРУГЛЕНИЕМ К БЛИЖАЙШЕМУ (Math.round)
-    return Math.round(prev * 1.2);
-  }
+  // Рост на 20% с округлением к ближайшему (как в игре)
+  const step = v => Math.round(v * 1.2);
 
   function expand(){
-    // анимированное раскрытие
     tableHolder.hidden = false;
     resultsWrap.style.maxHeight = resultsWrap.scrollHeight + 'px';
   }
-
   function collapse(){
     resultsWrap.style.maxHeight = '0px';
     tableHolder.hidden = true;
   }
 
-  function renderTable(heads, rows){
-    const th = heads.map(h => `<th>${h}</th>`).join('');
-    const tr = rows.map(r => `<tr>${r.map((c,i)=>`<td${i===0?' class="lvl"':''}>${c}</td>`).join('')}</tr>`).join('');
-    tableHolder.innerHTML = `<table><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>`;
+  function renderCompact(headers, rows){
+    // Колонки: Уровень | Мин | Макс | Среднее
+    const colgroup = `
+      <colgroup>
+        <col class="lvl"><col class="min"><col class="max"><col class="avg">
+      </colgroup>`;
+    const thead = `<thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>`;
+    const tbody = `<tbody>${rows.map(r=>`<tr>
+      <td class="lvl">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td>
+    </tr>`).join('')}</tbody>`;
+    tableHolder.innerHTML = `<table>${colgroup}${thead}${tbody}</table>`;
   }
 
   calcBtn.addEventListener('click', () => {
     msg.style.display = 'none';
     const kind = $('input[name="type"]:checked').value;
 
-    if(kind === 'tool' || kind === 'weapon'){
+    if(kind === 'uni'){
       const minEl = $('#min', inputsHost), maxEl = $('#max', inputsHost);
       const baseMin = valInt(minEl), baseMax = valInt(maxEl);
       if(!Number.isFinite(baseMin) || !Number.isFinite(baseMax) || baseMin<=0 || baseMax<=0 || baseMin>baseMax){
         msg.textContent = 'Проверьте базовые значения: положительные целые, и мин ≤ макс.';
         msg.style.display = 'block'; collapse(); return;
       }
-      // расчёт по уровням +1..+20 с округлением к ближайшему на каждом шаге
       let curMin = baseMin, curMax = baseMax;
       const rows = [];
       for(let lvl=1; lvl<=20; lvl++){
-        curMin = grow20Round(curMin);
-        curMax = grow20Round(curMax);
-        const avg = Math.round((curMin + curMax) / 2);
-        rows.push([`+${lvl}`, curMin, avg, curMax]);
+        curMin = step(curMin);
+        curMax = step(curMax);
+        const avg = Math.round((curMin + curMax)/2);
+        rows.push([`+${lvl}`, curMin, curMax, avg]);
       }
-      const heads = ['Уровень', (kind==='tool'?'Мин. эфф.':'Мин. урон'),'Среднее',(kind==='tool'?'Макс. эфф.':'Макс. урон')];
-      renderTable(heads, rows);
+      renderCompact(['Уровень','Минимальное','Максимальное','Среднее'], rows);
       expand();
     } else {
-      // armor
       const hpEl = $('#hp', inputsHost), mpEl = $('#mp', inputsHost), kbEl = $('#kb', inputsHost);
       const baseHP = valInt(hpEl), baseMP = valInt(mpEl), baseKB = valInt(kbEl);
       if(!Number.isFinite(baseHP) || !Number.isFinite(baseMP) || !Number.isFinite(baseKB) || baseHP<=0 || baseMP<0 || baseKB<0){
-        msg.textContent = 'Проверьте базовые значения брони: HP > 0, MP ≥ 0, KB ≥ 0 (целые).';
+        msg.textContent = 'Проверьте значения брони: HP > 0, MP ≥ 0, KB ≥ 0 (целые).';
         msg.style.display = 'block'; collapse(); return;
       }
       let hp=baseHP, mp=baseMP, kb=baseKB;
       const rows = [];
       for(let lvl=1; lvl<=20; lvl++){
-        hp = grow20Round(hp);
-        mp = grow20Round(mp);
-        kb = grow20Round(kb);
+        hp = step(hp); mp = step(mp); kb = step(kb);
         rows.push([`+${lvl}`, hp, mp, kb]);
       }
-      renderTable(['Уровень','HP','MP','KB'], rows);
+      // Для брони колонки: Уровень | HP | MP | KB
+      const colgroup = `
+        <colgroup><col class="lvl"><col class="min"><col class="max"><col class="avg"></colgroup>`;
+      const thead = `<thead><tr><th>Уровень</th><th>HP</th><th>MP</th><th>KB</th></tr></thead>`;
+      const tbody = `<tbody>${rows.map(r=>`<tr><td class="lvl">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('')}</tbody>`;
+      tableHolder.innerHTML = `<table>${colgroup}${thead}${tbody}</table>`;
       expand();
     }
   });
 
   resetBtn.addEventListener('click', ()=>{
-    // сброс значений и результата
     const kind = $('input[name="type"]:checked').value;
     setView(kind);
     collapse();
     msg.style.display = 'none';
-    // чуть-чуть «щёлк» для UX
-    resetBtn.animate([{transform:'scale(1.0)'},{transform:'scale(0.97)'},{transform:'scale(1.0)'}],{duration:140});
+    resetBtn.animate([{transform:'scale(1)'},{transform:'scale(0.97)'},{transform:'scale(1)'}],{duration:140});
   });
 
-  // авто-подгон высоты при раскрытии, если меняется содержимое
+  // Автоподгон высоты при изменении содержимого
   const ro = new ResizeObserver(()=>{ if(!tableHolder.hidden){ resultsWrap.style.maxHeight = resultsWrap.scrollHeight + 'px'; }});
   ro.observe(resultsWrap);
 })();
